@@ -1,6 +1,8 @@
 # Go orderbook
 
-Improved matching engine written in Go (Golang)
+用 Go（Golang）实现的改进版撮合引擎
+
+> 本文为 [README.md](README.md) 的中文译本。
 
 [![Go Report Card](https://goreportcard.com/badge/github.com/i25959341/orderbook)](https://goreportcard.com/report/github.com/i25959341/orderbook)
 [![GoDoc](https://godoc.org/github.com/i25959341/orderbook?status.svg)](https://godoc.org/github.com/i25959341/orderbook)
@@ -8,19 +10,19 @@ Improved matching engine written in Go (Golang)
 [![Stability: Active](https://masterminds.github.io/stability/active.svg)](https://masterminds.github.io/stability/active.html)
 [![Build Status](https://travis-ci.org/i25959341/orderbook.svg?branch=master)](https://travis-ci.org/i25959341/orderbook)
 
-## Features
+## 特性
 
-- Standard price-time priority
-- Supports both market and limit orders
-- Supports order cancelling
-- High performance (above 300k trades per second)
-- Optimal memory usage
-- JSON Marshalling and Unmarsalling
-- Calculating market price for definite quantity
+- 标准价格-时间优先（price-time priority）
+- 同时支持市价单和限价单
+- 支持撤单
+- 高性能（每秒超过 30 万笔成交）
+- 内存占用优化
+- 支持 JSON 序列化与反序列化
+- 可按指定数量计算市价
 
-## Usage
+## 用法
 
-To start using order book you need to create object:
+使用订单簿时，先创建对象：
 
 ```go
 import (
@@ -35,7 +37,7 @@ func main() {
 
 ```
 
-Then you be able to use next primary functions:
+然后即可调用以下核心方法：
 
 ```go
 
@@ -47,31 +49,30 @@ func (ob *OrderBook) CancelOrder(orderID string) *Order { ... }
 
 ```
 
-## About primary functions
+## 核心方法说明
 
 ### ProcessLimitOrder
 
 ```go
-// ProcessLimitOrder places new order to the OrderBook
-// Arguments:
-//      side     - what do you want to do (ob.Sell or ob.Buy)
-//      orderID  - unique order ID in depth
-//      quantity - how much quantity you want to sell or buy
-//      price    - no more expensive (or cheaper) this price
-//      * to create new decimal number you should use decimal.New() func
-//        read more at https://github.com/shopspring/decimal
-// Return:
-//      error   - not nil if quantity (or price) is less or equal 0. Or if order with given ID is exists
-//      done    - not nil if your order produces ends of anoter order, this order will add to
-//                the "done" slice. If your order have done too, it will be places to this array too
-//      partial - not nil if your order has done but top order is not fully done. Or if your order is
-//                partial done and placed to the orderbook without full quantity - partial will contain
-//                your order with quantity to left
-//      partialQuantityProcessed - if partial order is not nil this result contains processed quatity from partial order
+// ProcessLimitOrder 将新订单放入订单簿
+// 参数：
+//      side     - 买卖方向（ob.Sell 或 ob.Buy）
+//      orderID  - 盘口中的唯一订单 ID
+//      quantity - 希望买入或卖出的数量
+//      price    - 限价：买入不高于该价，卖出不低于该价
+//      * 创建 decimal 请使用 decimal.New()
+//        详见 https://github.com/shopspring/decimal
+// 返回值：
+//      error   - 数量（或价格）小于等于 0，或给定 ID 的订单已存在时不为 nil
+//      done    - 若你的订单导致其他订单完全成交，这些订单会加入 "done" 切片。
+//                若你的订单本身也完全成交，同样会放入该数组
+//      partial - 若你的订单已处理但对手盘最优订单未完全成交；或你的订单部分成交后
+//                以剩余数量挂入订单簿，则 partial 为该剩余订单
+//      partialQuantityProcessed - 当 partial 不为 nil 时，表示该部分成交订单已成交的数量
 func (ob *OrderBook) ProcessLimitOrder(side Side, orderID string, quantity, price decimal.Decimal) (done []*Order, partial *Order, err error) { ... }
 ```
 
-For example:
+示例：
 ```
 ProcessLimitOrder(ob.Sell, "uinqueID", decimal.New(55, 0), decimal.New(100, 0))
 
@@ -96,8 +97,8 @@ bids: 90  -> 5      120 -> 1
       80  -> 1      90  -> 5
                     80  -> 1
 
-done    - 2 (or more orders)
-partial - uinqueID order
+done    - 2（或更多订单）
+partial - uinqueID 订单
 
 ```
 
@@ -110,31 +111,30 @@ asks: 110 -> 5
 bids: 90  -> 5      90  -> 5
       80  -> 1      90  -> 5
 
-done    - 1 order with 100 price, (may be also few orders with 110 price) + uinqueID order
-partial - 1 order with price 110
+done    - 1 笔价格为 100 的订单（可能还有若干价格为 110 的订单）+ uinqueID 订单
+partial - 1 笔价格为 110 的订单
 
 ```
 
 ### ProcessMarketOrder
 
 ```go
-// ProcessMarketOrder immediately gets definite quantity from the order book with market price
-// Arguments:
-//      side     - what do you want to do (ob.Sell or ob.Buy)
-//      quantity - how much quantity you want to sell or buy
-//      * to create new decimal number you should use decimal.New() func
-//        read more at https://github.com/shopspring/decimal
-// Return:
-//      error        - not nil if price is less or equal 0
-//      done         - not nil if your market order produces ends of anoter orders, this order will add to
-//                     the "done" slice
-//      partial      - not nil if your order has done but top order is not fully done
-//      partialQuantityProcessed - if partial order is not nil this result contains processed quatity from partial order
-//      quantityLeft - more than zero if it is not enought orders to process all quantity
+// ProcessMarketOrder 按市价立即从订单簿吃掉指定数量
+// 参数：
+//      side     - 买卖方向（ob.Sell 或 ob.Buy）
+//      quantity - 希望买入或卖出的数量
+//      * 创建 decimal 请使用 decimal.New()
+//        详见 https://github.com/shopspring/decimal
+// 返回值：
+//      error        - 价格小于等于 0 时不为 nil
+//      done         - 若市价单导致其他订单完全成交，这些订单会加入 "done" 切片
+//      partial      - 若你的订单已处理但对手盘最优订单未完全成交，则不为 nil
+//      partialQuantityProcessed - 当 partial 不为 nil 时，表示该部分成交订单已成交的数量
+//      quantityLeft - 盘口深度不足以吃完全部数量时大于 0
 func (ob *OrderBook) ProcessMarketOrder(side Side, quantity decimal.Decimal) (done []*Order, partial *Order, quantityLeft decimal.Decimal, err error) { .. }
 ```
 
-For example:
+示例：
 ```
 ProcessMarketOrder(ob.Sell, decimal.New(6, 0))
 
@@ -144,8 +144,8 @@ asks: 110 -> 5      110 -> 5
 bids: 90  -> 5      80 -> 1
       80  -> 2
 
-done         - 2 (or more orders)
-partial      - 1 order with price 80
+done         - 2（或更多订单）
+partial      - 1 笔价格为 80 的订单
 quantityLeft - 0
 
 ```
@@ -159,7 +159,7 @@ asks: 110 -> 5
 bids: 90  -> 5      90  -> 5
       80  -> 1      80  -> 1
                     
-done         - 2 (or more orders)
+done         - 2（或更多订单）
 partial      - nil
 quantityLeft - 4
 
@@ -168,7 +168,7 @@ quantityLeft - 4
 ### CancelOrder
 
 ```go
-// CancelOrder removes order with given ID from the order book
+// CancelOrder 按 ID 从订单簿中移除订单
 func (ob *OrderBook) CancelOrder(orderID string) *Order { ... }
 ```
 
@@ -181,12 +181,12 @@ asks: 110 -> 5
 bids: 90  -> 5      90  -> 5
       80  -> 1      80  -> 1
 
-returned - the cancelled sell order (price 100, quantity 1); nil if the ID is not found
+返回 - 被撤销的卖单（价格 100，数量 1）；找不到该 ID 时为 nil
 
 ```
 
-## License
+## 许可证
 
-The MIT License (MIT)
+MIT License (MIT)
 
-See LICENSE and AUTHORS files
+详见 LICENSE 与 AUTHORS 文件
