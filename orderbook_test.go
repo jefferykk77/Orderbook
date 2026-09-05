@@ -70,6 +70,28 @@ func TestLimitPlace(t *testing.T) {
 	return
 }
 
+func TestTakingWalksOppositeBook(t *testing.T) {
+	ob := NewOrderBook()
+	_, _, _, err := ob.ProcessLimitOrder(Sell, "ask-100", decimal.New(1, 0), decimal.New(100, 0))
+	if err != nil {
+		t.Fatal(err)
+	}
+	_, _, _, err = ob.ProcessLimitOrder(Buy, "bid-90", decimal.New(1, 0), decimal.New(90, 0))
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	bestAsk := ob.taking(Buy).Best()
+	if bestAsk == nil || !bestAsk.Price().Equal(decimal.New(100, 0)) {
+		t.Fatalf("incoming buy should take best ask, got %v", bestAsk)
+	}
+
+	bestBid := ob.taking(Sell).Best()
+	if bestBid == nil || !bestBid.Price().Equal(decimal.New(90, 0)) {
+		t.Fatalf("incoming sell should take best bid, got %v", bestBid)
+	}
+}
+
 func TestLimitProcess(t *testing.T) {
 	ob := NewOrderBook()
 	addDepth(ob, "", decimal.New(2, 0))

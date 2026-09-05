@@ -14,6 +14,14 @@ const (
 	Buy
 )
 
+// Opposite returns the other side of the market.
+func (s Side) Opposite() Side {
+	if s == Buy {
+		return Sell
+	}
+	return Buy
+}
+
 // String implements fmt.Stringer interface
 func (s Side) String() string {
 	if s == Buy {

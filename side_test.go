@@ -29,3 +29,15 @@ func TestSideJSON(t *testing.T) {
 		t.Fatal("can unmarshal unsupported value")
 	}
 }
+
+func TestSideOpposite(t *testing.T) {
+	if Buy.Opposite() != Sell {
+		t.Fatalf("Buy.Opposite() = %s, want sell", Buy.Opposite())
+	}
+	if Sell.Opposite() != Buy {
+		t.Fatalf("Sell.Opposite() = %s, want buy", Sell.Opposite())
+	}
+	if Buy.Opposite().Opposite() != Buy {
+		t.Fatal("Opposite should be involutive")
+	}
+}
