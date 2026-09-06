@@ -3,6 +3,7 @@ package orderbook
 import "errors"
 
 // OrderBook erros
+// OrderBook 的错误
 var (
 	ErrInvalidQuantity      = errors.New("orderbook: invalid order quantity")
 	ErrInvalidPrice         = errors.New("orderbook: invalid order price")

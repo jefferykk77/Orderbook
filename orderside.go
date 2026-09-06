@@ -12,6 +12,7 @@ import (
 )
 
 // OrderSide implements facade to operations with order queue
+// OrderSide 是对订单队列操作的门面
 type OrderSide struct {
 	priceTree *rbtx.RedBlackTreeExtended
 	prices    map[string]*OrderQueue
@@ -26,6 +27,7 @@ func rbtComparator(a, b interface{}) int {
 }
 
 // NewOrderSide creates new OrderSide manager
+// NewOrderSide 创建新的 OrderSide 管理器
 func NewOrderSide() *OrderSide {
 	return &OrderSide{
 		priceTree: &rbtx.RedBlackTreeExtended{
@@ -37,21 +39,25 @@ func NewOrderSide() *OrderSide {
 }
 
 // Len returns amount of orders
+// Len 返回订单数量
 func (os *OrderSide) Len() int {
 	return os.numOrders
 }
 
 // Depth returns depth of market
+// Depth 返回市场深度（价档数）
 func (os *OrderSide) Depth() int {
 	return os.depth
 }
 
 // Volume returns total amount of quantity in side
+// Volume 返回该侧的数量合计
 func (os *OrderSide) Volume() decimal.Decimal {
 	return os.volume
 }
 
 // Append appends order to definite price level
+// Append 将订单追加到指定价格档位
 func (os *OrderSide) Append(o *Order) *list.Element {
 	price := o.Price()
 	strPrice := price.String()
@@ -69,6 +75,7 @@ func (os *OrderSide) Append(o *Order) *list.Element {
 }
 
 // Remove removes order from definite price level
+// Remove 从指定价格档位移除订单
 func (os *OrderSide) Remove(e *list.Element) *Order {
 	price := e.Value.(*Order).Price()
 	strPrice := price.String()
@@ -88,6 +95,7 @@ func (os *OrderSide) Remove(e *list.Element) *Order {
 }
 
 // MaxPriceQueue returns maximal level of price
+// MaxPriceQueue 返回最高价格档位
 func (os *OrderSide) MaxPriceQueue() *OrderQueue {
 	if os.depth > 0 {
 		if value, found := os.priceTree.GetMax(); found {
@@ -98,6 +106,7 @@ func (os *OrderSide) MaxPriceQueue() *OrderQueue {
 }
 
 // MinPriceQueue returns maximal level of price
+// MinPriceQueue 返回最低价格档位
 func (os *OrderSide) MinPriceQueue() *OrderQueue {
 	if os.depth > 0 {
 		if value, found := os.priceTree.GetMin(); found {
@@ -108,6 +117,7 @@ func (os *OrderSide) MinPriceQueue() *OrderQueue {
 }
 
 // LessThan returns nearest OrderQueue with price less than given
+// LessThan 返回价格低于给定值的最近 OrderQueue
 func (os *OrderSide) LessThan(price decimal.Decimal) *OrderQueue {
 	tree := os.priceTree.Tree
 	node := tree.Root
@@ -130,6 +140,7 @@ func (os *OrderSide) LessThan(price decimal.Decimal) *OrderQueue {
 }
 
 // GreaterThan returns nearest OrderQueue with price greater than given
+// GreaterThan 返回价格高于给定值的最近 OrderQueue
 func (os *OrderSide) GreaterThan(price decimal.Decimal) *OrderQueue {
 	tree := os.priceTree.Tree
 	node := tree.Root
@@ -152,6 +163,7 @@ func (os *OrderSide) GreaterThan(price decimal.Decimal) *OrderQueue {
 }
 
 // Orders returns all of *list.Element orders
+// Orders 返回全部订单的 *list.Element
 func (os *OrderSide) Orders() (orders []*list.Element) {
 	for _, price := range os.prices {
 		iter := price.Head()
@@ -164,6 +176,7 @@ func (os *OrderSide) Orders() (orders []*list.Element) {
 }
 
 // String implements fmt.Stringer interface
+// String 实现 fmt.Stringer 接口
 func (os *OrderSide) String() string {
 	sb := strings.Builder{}
 
@@ -177,6 +190,7 @@ func (os *OrderSide) String() string {
 }
 
 // MarshalJSON implements json.Marshaler interface
+// MarshalJSON 实现 json.Marshaler 接口
 func (os *OrderSide) MarshalJSON() ([]byte, error) {
 	return json.Marshal(
 		&struct {
@@ -192,6 +206,7 @@ func (os *OrderSide) MarshalJSON() ([]byte, error) {
 }
 
 // UnmarshalJSON implements json.Unmarshaler interface
+// UnmarshalJSON 实现 json.Unmarshaler 接口
 func (os *OrderSide) UnmarshalJSON(data []byte) error {
 	obj := struct {
 		NumOrders int                    `json:"numOrders"`

@@ -281,6 +281,7 @@ func TestPriceCalculation(t *testing.T) {
 	}
 
 	// -------
+	// （分隔）
 
 	price, _, err = ob.CalculateMarketPrice(Sell, decimal.New(115, 0))
 	if err != nil {
@@ -306,10 +307,15 @@ func BenchmarkLimitOrder(b *testing.B) {
 	stopwatch := time.Now()
 	for i := 0; i < b.N; i++ {
 		addDepth(ob, "05-", decimal.New(10, 0))                                           // 10 ts
+		// 10 个时间戳
 		addDepth(ob, "10-", decimal.New(10, 0))                                           // 10 ts
+		// 10 个时间戳
 		addDepth(ob, "15-", decimal.New(10, 0))                                           // 10 ts
+		// 10 个时间戳
 		ob.ProcessLimitOrder(Buy, "order-b150", decimal.New(160, 0), decimal.New(150, 0)) // 1 ts
+		// 1 个时间戳
 		ob.ProcessMarketOrder(Sell, decimal.New(200, 0))                                  // 1 ts = total 32
+		// 1 个时间戳 = 合计 32
 	}
 	elapsed := time.Since(stopwatch)
 	fmt.Printf("\n\nElapsed: %s\nTransactions per second (avg): %f\n", elapsed, float64(b.N*32)/elapsed.Seconds())
