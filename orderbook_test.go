@@ -81,12 +81,12 @@ func TestTakingWalksOppositeBook(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	bestAsk := ob.taking(Buy).Best()
+	bestAsk := ob.restingBook(Buy).Best()
 	if bestAsk == nil || !bestAsk.Price().Equal(decimal.New(100, 0)) {
 		t.Fatalf("incoming buy should take best ask, got %v", bestAsk)
 	}
 
-	bestBid := ob.taking(Sell).Best()
+	bestBid := ob.restingBook(Sell).Best()
 	if bestBid == nil || !bestBid.Price().Equal(decimal.New(90, 0)) {
 		t.Fatalf("incoming sell should take best bid, got %v", bestBid)
 	}

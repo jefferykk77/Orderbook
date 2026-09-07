@@ -35,36 +35,36 @@ type PriceLevel struct {
 	Quantity decimal.Decimal `json:"quantity"`
 }
 
-// takingBook is the opposite side of the book an incoming order consumes,
-// takingBook 是进场订单要吃掉的对手盘，
+// restingBook is the opposite side of the book an incoming order consumes,
+// restingBook 是进场订单要吃掉的对手盘，
 // walked from best price outward. Matching depends on this surface, not on
 // 从最优价向外遍历。撮合依赖该接口，而不是
 // bids vs asks.
 // 直接区分买盘还是卖盘。
-type takingBook interface {
+type restingBook interface {
 	Len() int
 	Best() *OrderQueue
 	Next(price decimal.Decimal) *OrderQueue
 }
 
-type takingSide struct {
+type restingSide struct {
 	book *OrderSide
 	best func() *OrderQueue
 	next func(decimal.Decimal) *OrderQueue
 }
 
-func (t takingSide) Len() int { return t.book.Len() }
+func (t restingSide) Len() int { return t.book.Len() }
 
-func (t takingSide) Best() *OrderQueue { return t.best() }
+func (t restingSide) Best() *OrderQueue { return t.best() }
 
-func (t takingSide) Next(price decimal.Decimal) *OrderQueue { return t.next(price) }
+func (t restingSide) Next(price decimal.Decimal) *OrderQueue { return t.next(price) }
 
-func (ob *OrderBook) taking(side Side) takingBook {
+func (ob *OrderBook) restingBook(side Side) restingBook {
 	book := ob.GetOrderSide(side.Opposite())
 	if side == Buy {
-		return takingSide{book: book, best: book.MinPriceQueue, next: book.GreaterThan}
+		return restingSide{book: book, best: book.MinPriceQueue, next: book.GreaterThan}
 	}
-	return takingSide{book: book, best: book.MaxPriceQueue, next: book.LessThan}
+	return restingSide{book: book, best: book.MaxPriceQueue, next: book.LessThan}
 }
 
 func (s Side) crosses(limit, best decimal.Decimal) bool {
@@ -78,39 +78,42 @@ func (s Side) crosses(limit, best decimal.Decimal) bool {
 // ProcessMarketOrder 按市价立即从订单簿吃掉指定数量
 // Arguments:
 // 参数：
-//      side     - what do you want to do (ob.Sell or ob.Buy)
-//      side     - 买卖方向（ob.Sell 或 ob.Buy）
-//      quantity - how much quantity you want to sell or buy
-//      quantity - 希望买入或卖出的数量
-//      * to create new decimal number you should use decimal.New() func
-//      * 创建 decimal 请使用 decimal.New()
-//        read more at https://github.com/shopspring/decimal
-//        详见 https://github.com/shopspring/decimal
+//
+//	side     - what do you want to do (ob.Sell or ob.Buy)
+//	side     - 买卖方向（ob.Sell 或 ob.Buy）
+//	quantity - how much quantity you want to sell or buy
+//	quantity - 希望买入或卖出的数量
+//	* to create new decimal number you should use decimal.New() func
+//	* 创建 decimal 请使用 decimal.New()
+//	  read more at https://github.com/shopspring/decimal
+//	  详见 https://github.com/shopspring/decimal
+//
 // Return:
 // 返回值：
-//      error        - not nil if price is less or equal 0
-//      error        - 价格小于等于 0 时不为 nil
-//      done         - not nil if your market order produces ends of anoter orders, this order will add to
-//      done         - 若市价单导致其他订单完全成交，这些订单会加入
-//                     the "done" slice
-//                     "done" 切片
-//      partial      - not nil if your order has done but top order is not fully done
-//      partial      - 若你的订单已处理但对手盘最优订单未完全成交，则不为 nil
-//      partialQuantityProcessed - if partial order is not nil this result contains processed quatity from partial order
-//      partialQuantityProcessed - 当 partial 不为 nil 时，表示该部分成交订单已成交的数量
-//      quantityLeft - more than zero if it is not enought orders to process all quantity
-//      quantityLeft - 盘口深度不足以吃完全部数量时大于 0
+//
+//	error        - not nil if price is less or equal 0
+//	error        - 价格小于等于 0 时不为 nil
+//	done         - not nil if your market order produces ends of anoter orders, this order will add to
+//	done         - 若市价单导致其他订单完全成交，这些订单会加入
+//	               the "done" slice
+//	               "done" 切片
+//	partial      - not nil if your order has done but top order is not fully done
+//	partial      - 若你的订单已处理但对手盘最优订单未完全成交，则不为 nil
+//	partialQuantityProcessed - if partial order is not nil this result contains processed quatity from partial order
+//	partialQuantityProcessed - 当 partial 不为 nil 时，表示该部分成交订单已成交的数量
+//	quantityLeft - more than zero if it is not enought orders to process all quantity
+//	quantityLeft - 盘口深度不足以吃完全部数量时大于 0
 func (ob *OrderBook) CalculatePriceAfterExecution(side Side, quantity decimal.Decimal) (price decimal.Decimal, err error) {
 	price = decimal.Zero
-	taking := ob.taking(side)
-	level := taking.Best()
+	resting := ob.restingBook(side)
+	level := resting.Best()
 	for quantity.Sign() > 0 && level != nil {
 		levelVolume := level.Volume()
 		levelPrice := level.Price()
 		if quantity.GreaterThanOrEqual(levelVolume) {
 			price = levelPrice
 			quantity = quantity.Sub(levelVolume)
-			level = taking.Next(levelPrice)
+			level = resting.Next(levelPrice)
 		} else {
 			price = levelPrice
 			quantity = decimal.Zero
@@ -125,9 +128,9 @@ func (ob *OrderBook) ProcessMarketOrder(side Side, quantity decimal.Decimal) (do
 		return nil, nil, decimal.Zero, decimal.Zero, ErrInvalidQuantity
 	}
 
-	taking := ob.taking(side)
-	for quantity.Sign() > 0 && taking.Len() > 0 {
-		bestPrice := taking.Best()
+	resting := ob.restingBook(side)
+	for quantity.Sign() > 0 && resting.Len() > 0 {
+		bestPrice := resting.Best()
 		ordersDone, partialDone, partialProcessed, quantityLeft := ob.processQueue(bestPrice, quantity)
 		done = append(done, ordersDone...)
 		partial = partialDone
@@ -143,34 +146,37 @@ func (ob *OrderBook) ProcessMarketOrder(side Side, quantity decimal.Decimal) (do
 // ProcessLimitOrder 将新订单放入订单簿
 // Arguments:
 // 参数：
-//      side     - what do you want to do (ob.Sell or ob.Buy)
-//      side     - 买卖方向（ob.Sell 或 ob.Buy）
-//      orderID  - unique order ID in depth
-//      orderID  - 盘口中的唯一订单 ID
-//      quantity - how much quantity you want to sell or buy
-//      quantity - 希望买入或卖出的数量
-//      price    - no more expensive (or cheaper) this price
-//      price    - 限价：买入不高于该价，卖出不低于该价
-//      * to create new decimal number you should use decimal.New() func
-//      * 创建 decimal 请使用 decimal.New()
-//        read more at https://github.com/shopspring/decimal
-//        详见 https://github.com/shopspring/decimal
+//
+//	side     - what do you want to do (ob.Sell or ob.Buy)
+//	side     - 买卖方向（ob.Sell 或 ob.Buy）
+//	orderID  - unique order ID in depth
+//	orderID  - 盘口中的唯一订单 ID
+//	quantity - how much quantity you want to sell or buy
+//	quantity - 希望买入或卖出的数量
+//	price    - no more expensive (or cheaper) this price
+//	price    - 限价：买入不高于该价，卖出不低于该价
+//	* to create new decimal number you should use decimal.New() func
+//	* 创建 decimal 请使用 decimal.New()
+//	  read more at https://github.com/shopspring/decimal
+//	  详见 https://github.com/shopspring/decimal
+//
 // Return:
 // 返回值：
-//      error   - not nil if quantity (or price) is less or equal 0. Or if order with given ID is exists
-//      error   - 数量（或价格）小于等于 0，或给定 ID 的订单已存在时不为 nil
-//      done    - not nil if your order produces ends of anoter order, this order will add to
-//      done    - 若你的订单导致其他订单完全成交，这些订单会加入
-//                the "done" slice. If your order have done too, it will be places to this array too
-//                "done" 切片。若你的订单本身也完全成交，同样会放入该数组
-//      partial - not nil if your order has done but top order is not fully done. Or if your order is
-//      partial - 若你的订单已处理但对手盘最优订单未完全成交；或你的订单部分成交后
-//                partial done and placed to the orderbook without full quantity - partial will contain
-//                以剩余数量挂入订单簿，则 partial 为该剩余订单
-//                your order with quantity to left
-//                （即你这笔订单的剩余数量）
-//      partialQuantityProcessed - if partial order is not nil this result contains processed quatity from partial order
-//      partialQuantityProcessed - 当 partial 不为 nil 时，表示该部分成交订单已成交的数量
+//
+//	error   - not nil if quantity (or price) is less or equal 0. Or if order with given ID is exists
+//	error   - 数量（或价格）小于等于 0，或给定 ID 的订单已存在时不为 nil
+//	done    - not nil if your order produces ends of anoter order, this order will add to
+//	done    - 若你的订单导致其他订单完全成交，这些订单会加入
+//	          the "done" slice. If your order have done too, it will be places to this array too
+//	          "done" 切片。若你的订单本身也完全成交，同样会放入该数组
+//	partial - not nil if your order has done but top order is not fully done. Or if your order is
+//	partial - 若你的订单已处理但对手盘最优订单未完全成交；或你的订单部分成交后
+//	          partial done and placed to the orderbook without full quantity - partial will contain
+//	          以剩余数量挂入订单簿，则 partial 为该剩余订单
+//	          your order with quantity to left
+//	          （即你这笔订单的剩余数量）
+//	partialQuantityProcessed - if partial order is not nil this result contains processed quatity from partial order
+//	partialQuantityProcessed - 当 partial 不为 nil 时，表示该部分成交订单已成交的数量
 func (ob *OrderBook) ProcessLimitOrder(side Side, orderID string, quantity, price decimal.Decimal) (done []*Order, partial *Order, partialQuantityProcessed decimal.Decimal, err error) {
 	if _, ok := ob.orders[orderID]; ok {
 		return nil, nil, decimal.Zero, ErrOrderExists
@@ -186,16 +192,16 @@ func (ob *OrderBook) ProcessLimitOrder(side Side, orderID string, quantity, pric
 
 	quantityToTrade := quantity
 	own := ob.GetOrderSide(side)
-	taking := ob.taking(side)
+	resting := ob.restingBook(side)
 
-	bestPrice := taking.Best()
-	for quantityToTrade.Sign() > 0 && taking.Len() > 0 && side.crosses(price, bestPrice.Price()) {
+	bestPrice := resting.Best()
+	for quantityToTrade.Sign() > 0 && resting.Len() > 0 && side.crosses(price, bestPrice.Price()) {
 		ordersDone, partialDone, partialQty, quantityLeft := ob.processQueue(bestPrice, quantityToTrade)
 		done = append(done, ordersDone...)
 		partial = partialDone
 		partialQuantityProcessed = partialQty
 		quantityToTrade = quantityLeft
-		bestPrice = taking.Best()
+		bestPrice = resting.Best()
 	}
 
 	if quantityToTrade.Sign() > 0 {
@@ -299,8 +305,8 @@ func (ob *OrderBook) CancelOrder(orderID string) *Order {
 func (ob *OrderBook) CalculateMarketPrice(side Side, quantity decimal.Decimal) (price decimal.Decimal, quant decimal.Decimal, err error) {
 	price = decimal.Zero
 	quant = decimal.Zero
-	taking := ob.taking(side)
-	level := taking.Best()
+	resting := ob.restingBook(side)
+	level := resting.Best()
 	for quantity.Sign() > 0 && level != nil {
 		levelVolume := level.Volume()
 		levelPrice := level.Price()
@@ -308,7 +314,7 @@ func (ob *OrderBook) CalculateMarketPrice(side Side, quantity decimal.Decimal) (
 			price = price.Add(levelPrice.Mul(levelVolume))
 			quantity = quantity.Sub(levelVolume)
 			quant = quant.Add(levelVolume)
-			level = taking.Next(levelPrice)
+			level = resting.Next(levelPrice)
 		} else {
 			price = price.Add(levelPrice.Mul(quantity))
 			quant = quant.Add(quantity)
