@@ -1,0 +1,108 @@
+syntax = "proto3";
+
+package trade;
+
+option go_package = "orderbook/api/proto/trade;tradepb";
+
+// TradingService 是撮合服务对客户端暴露的公开接口。
+service TradingService {
+  rpc PlaceOrder(PlaceOrderRequest) returns (PlaceOrderResponse);
+  rpc CancelOrder(CancelOrderRequest) returns (CancelOrderResponse);
+  rpc GetOrder(GetOrderRequest) returns (Order);
+}
+
+enum Side {
+  SIDE_UNSPECIFIED = 0;
+  SIDE_BUY = 1;
+  SIDE_SELL = 2;
+}
+
+enum Currency {
+  CURRENCY_UNSPECIFIED = 0;
+  CURRENCY_BTC = 1;
+  CURRENCY_ETH = 2;
+  CURRENCY_USDT = 3;
+}
+
+enum OrderType {
+  ORDER_TYPE_UNSPECIFIED = 0;
+  ORDER_TYPE_LIMIT = 1;
+  ORDER_TYPE_MARKET = 2;
+}
+
+enum OrderStatus {
+  ORDER_STATUS_UNSPECIFIED = 0;
+  ORDER_STATUS_OPEN = 1;
+  ORDER_STATUS_PARTIALLY_FILLED = 2;
+  ORDER_STATUS_FILLED = 3;
+  ORDER_STATUS_CANCELLED = 4;
+  ORDER_STATUS_REJECTED = 5;
+}
+
+message PlaceOrderRequest {
+  // 客户端生成的幂等键。同一个 user_id 下 request_id 必须唯一，
+  // 即使交易组合或其他字段发生变化也不能复用。
+  string request_id = 1;
+
+  // 实验环境临时字段。后续接入认证时，会改为从凭证
+  // 或网关注入的 metadata 中获取用户身份。
+  string user_id = 2;
+
+  // 当前版本只支持 BTC/USDT 和 ETH/USDT 两个交易组合。
+  Currency base_currency = 3;
+  Currency quote_currency = 4;
+  Side side = 5;
+  OrderType type = 6;
+
+  // 十进制字符串，例如 "42000.12"。限价单必填，市价单忽略。
+  // 这里刻意避免使用二进制浮点数，防止金额精度丢失。
+  string limit_price = 7;
+
+  // 数字货币数量的十进制字符串，必须大于 0。
+  string quantity = 8;
+}
+
+message Fill {
+  string trade_id = 1;
+  string maker_order_id = 2;
+  string taker_order_id = 3;
+  string price = 4;
+  string quantity = 5;
+  int64 executed_at_ms = 6;
+}
+
+message Order {
+  string order_id = 1;
+  string request_id = 2;
+  string user_id = 3;
+  Currency base_currency = 4;
+  Currency quote_currency = 5;
+  Side side = 6;
+  OrderType type = 7;
+  string limit_price = 8;
+  string original_quantity = 9;
+  string executed_quantity = 10;
+  string remaining_quantity = 11;
+  OrderStatus status = 12;
+  int64 created_at_ms = 13;
+  int64 updated_at_ms = 14;
+}
+
+message PlaceOrderResponse {
+  Order order = 1;
+  repeated Fill fills = 2;
+}
+
+message CancelOrderRequest {
+  string user_id = 1;
+  string order_id = 2;
+}
+
+message CancelOrderResponse {
+  Order order = 1;
+}
+
+message GetOrderRequest {
+  string user_id = 1;
+  string order_id = 2;
+}

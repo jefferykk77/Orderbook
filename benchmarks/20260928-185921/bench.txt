@@ -1,0 +1,55 @@
+﻿Timestamp: 2026-09-28T18:59:22.5871189+08:00
+Module: D:\trade\OrderBook\orderbook
+Commit: aeec46e
+GOMAXPROCS(env): 
+Logical processors reported by OS: 16
+
+
+Name                      : AMD Ryzen 7 8845H w/ Radeon 780M Graphics
+NumberOfCores             : 8
+NumberOfLogicalProcessors : 16
+
+
+
+
+Command: go test -run '^$' -bench '^Benchmark(LimitOrderNoCross|LimitOrderMatch|MarketOrderPartialFill|CalculateMarketPrice|Depth|MarshalJSON|ParallelIndependentBooks|BookString)$' -benchmem -benchtime 1s -count 3
+go version======================================================================
+go version go1.27.1 windows/amd64
+go env==========================================================================
+windows
+amd64
+go1.27.1
+1
+unit tests======================================================================
+ok  	orderbook	(cached)
+benchmarks======================================================================
+goos: windows
+goarch: amd64
+pkg: orderbook
+cpu: AMD Ryzen 7 8845H w/ Radeon 780M Graphics
+BenchmarkLimitOrderNoCross-16           	  902818	      1391 ns/op	     664 B/op	      23 allocs/op
+BenchmarkLimitOrderNoCross-16           	  800917	      1268 ns/op	     664 B/op	      23 allocs/op
+BenchmarkLimitOrderNoCross-16           	  926930	      1225 ns/op	     664 B/op	      23 allocs/op
+BenchmarkLimitOrderMatch-16             	 1229324	      1029 ns/op	     720 B/op	      26 allocs/op
+BenchmarkLimitOrderMatch-16             	 1000000	      1042 ns/op	     720 B/op	      26 allocs/op
+BenchmarkLimitOrderMatch-16             	 1225656	       961.6 ns/op	     720 B/op	      26 allocs/op
+BenchmarkMarketOrderPartialFill-16      	 5495569	       254.2 ns/op	     200 B/op	       7 allocs/op
+BenchmarkMarketOrderPartialFill-16      	 4646413	       233.2 ns/op	     200 B/op	       7 allocs/op
+BenchmarkMarketOrderPartialFill-16      	 5097831	       239.3 ns/op	     200 B/op	       7 allocs/op
+BenchmarkCalculateMarketPrice-16        	  962446	      1357 ns/op	     960 B/op	      36 allocs/op
+BenchmarkCalculateMarketPrice-16        	 1000000	      1320 ns/op	     960 B/op	      36 allocs/op
+BenchmarkCalculateMarketPrice-16        	 1000000	      1356 ns/op	     960 B/op	      36 allocs/op
+BenchmarkDepth-16                       	   51954	     27477 ns/op	   14752 B/op	     710 allocs/op
+BenchmarkDepth-16                       	   43246	     25744 ns/op	   14752 B/op	     710 allocs/op
+BenchmarkDepth-16                       	   49578	     26044 ns/op	   14752 B/op	     710 allocs/op
+BenchmarkMarshalJSON-16                 	     376	   2785782 ns/op	 1550227 B/op	   14759 allocs/op
+BenchmarkMarshalJSON-16                 	     417	   2773273 ns/op	 1545063 B/op	   14759 allocs/op
+BenchmarkMarshalJSON-16                 	     411	   2537862 ns/op	 1551110 B/op	   14758 allocs/op
+BenchmarkParallelIndependentBooks-16    	 3284277	       336.9 ns/op	     720 B/op	      26 allocs/op
+BenchmarkParallelIndependentBooks-16    	 3651489	       342.3 ns/op	     720 B/op	      26 allocs/op
+BenchmarkParallelIndependentBooks-16    	 2864535	       350.4 ns/op	     720 B/op	      26 allocs/op
+BenchmarkBookString-16                  	   17236	     70586 ns/op	   29281 B/op	    1717 allocs/op
+BenchmarkBookString-16                  	   17070	     69207 ns/op	   29280 B/op	    1717 allocs/op
+BenchmarkBookString-16                  	   17085	     71793 ns/op	   29281 B/op	    1717 allocs/op
+PASS
+ok  	orderbook	37.958s
