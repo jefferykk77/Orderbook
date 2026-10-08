@@ -1,0 +1,27 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: orderbook
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: orderbook
+  template:
+    metadata:
+      labels:
+        app: orderbook
+    spec:
+      containers:
+        - name: orderbook
+          image: orderbook:latest
+          imagePullPolicy: IfNotPresent
+          ports:
+            - containerPort: 50051
+          env:
+            - name: TRADE_CONSUL_ADDR
+              value: consul.consul.svc.cluster.local:8500
+            - name: TRADE_ADVERTISE_ADDR
+              valueFrom:
+                fieldRef:
+                  fieldPath: status.podIP

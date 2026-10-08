@@ -1,0 +1,14 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: consul-config
+  namespace: consul
+data:
+  consul.hcl: |
+    datacenter = "trade"
+    data_dir = "/consul/data"
+    server = true
+    bootstrap_expect = 3
+    retry_join = ["consul-server.consul.svc.cluster.local"]
+    client_addr = "0.0.0.0"
+    ui_config { enabled = true }
